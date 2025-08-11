@@ -1,5 +1,10 @@
 # GraphQLCop
 
+<!-- Project Logo -->
+<p align="center">
+  <img src="./graphql_cop_ex_logo.png" alt="GraphQLCop EX Logo" width="220" />
+</p>
+
 **TODO: Add description**
 
 ## Installation
