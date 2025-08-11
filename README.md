@@ -4,8 +4,6 @@
   <img src="./graphql_cop_ex_logo.png" alt="GraphQLCop EX Logo" width="220" />
 </p>
 
-**Author:** Syed Imam
-
 GraphQLCop EX is an Elixir-based security audit utility for GraphQL APIs, inspired by the original Python GraphQL Cop.  
 It is built specifically for Elixir projects, integrates seamlessly with the [Absinthe](https://hexdocs.pm/absinthe) package, and can be run as a Mix task.
 
