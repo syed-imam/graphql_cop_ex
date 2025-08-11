@@ -1,0 +1,87 @@
+defmodule GraphQLCop.Checks.GetBasedMutationTest do
+  use ExUnit.Case, async: false
+  import Mock
+
+  alias GraphQLCop.Checks.GetBasedMutation
+
+  @url "https://example.com/graphql"
+  @proxy nil
+  @headers %{"Authorization" => "Bearer test"}
+  @mutation "mutation cop { __typename }"
+
+  defp parse_query(url) do
+    %URI{query: qs} = URI.parse(url)
+    URI.decode_query(qs || "")
+  end
+
+  test "returns result: true when mutation executes over GET (data.__typename present)" do
+    with_mock HTTPoison,
+      get: fn url, headers, hackney: hackney_opts ->
+        # validate proxy passthrough
+        assert hackney_opts == []
+        # validate headers are normalized list of tuples
+        assert {"Authorization", "Bearer test"} in headers
+
+        # validate query param contains our mutation string (URL-encoded)
+        params = parse_query(url)
+        assert Map.has_key?(params, "query")
+        assert params["query"] == @mutation
+
+        body = %{"data" => %{"__typename" => "__Schema"}}
+        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(body)}}
+      end do
+      res = GetBasedMutation.run(@url, @proxy, @headers, false)
+
+      assert res.result == true
+      assert res.title == "Mutation is allowed over GET (possible CSRF)"
+      assert res.severity == "MEDIUM"
+      assert String.ends_with?(res.impact, "/graphql")
+      assert String.starts_with?(res.curl_verify, "curl -s -X GET ")
+      assert String.contains?(res.curl_verify, @url)
+    end
+  end
+
+  test "returns result: false when response lacks data.__typename" do
+    with_mock HTTPoison,
+      get: fn _url, _headers, hackney: _opts ->
+        body = %{"errors" => [%{"message" => "Mutations not allowed over GET"}]}
+        {:ok, %HTTPoison.Response{status_code: 400, body: Jason.encode!(body)}}
+      end do
+      res = GetBasedMutation.run(@url, @proxy, @headers, false)
+      assert res.result == false
+    end
+  end
+
+  test "adds debug header when debug_mode is true" do
+    parent = self()
+
+    with_mock HTTPoison,
+      get: fn url, headers, hackney: _opts ->
+        send(parent, {:headers_seen, headers})
+
+        params = parse_query(url)
+        assert params["query"] == @mutation
+
+        body = %{"data" => %{"__typename" => "__Schema"}}
+        {:ok, %HTTPoison.Response{status_code: 200, body: Jason.encode!(body)}}
+      end do
+      _ = GetBasedMutation.run(@url, @proxy, @headers, true)
+
+      assert_receive {:headers_seen, headers}
+
+      # headers are a list like [{"Content-Type","application/json"}, {"X-GraphQL-Cop-Test","..."}...]
+      assert {"X-GraphQL-Cop-Test", "Mutation is allowed over GET (possible CSRF)"} in headers
+    end
+  end
+
+  test "handles HTTPoison error tuple gracefully (result: false, curl still built)" do
+    with_mock HTTPoison,
+      get: fn _url, _headers, hackney: _opts ->
+        {:error, %HTTPoison.Error{id: nil, reason: :econnrefused}}
+      end do
+      res = GetBasedMutation.run(@url, @proxy, @headers, false)
+      assert res.result == false
+      assert String.starts_with?(res.curl_verify, "curl -s -X GET ")
+    end
+  end
+end
