@@ -7,7 +7,8 @@ defmodule GraphQLCop.MixProject do
       version: "0.1.0",
       elixir: "~> 1.18",
       start_permanent: Mix.env() == :prod,
-      deps: deps()
+      deps: deps(),
+      package: package()
     ]
   end
 
@@ -29,6 +30,15 @@ defmodule GraphQLCop.MixProject do
       {:absinthe, "~> 1.7"},
       {:bypass, "~> 2.1", only: :test},
       {:mock, "~> 0.3.8", only: :test}
+    ]
+  end
+
+  defp package do
+    [
+      licenses: ["MIT"],
+      links: %{
+        "GitHub" => "https://github.com/syed-imam/graphql_cop_ex"
+      }
     ]
   end
 end
