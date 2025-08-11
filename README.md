@@ -1,4 +1,4 @@
-# GraphQLCop EX
+# GraphQLCop EX - Security Audit Tool for GraphQL (Elixir)
 
 <p align="center">
   <img src="./graphql_cop_ex_logo.png" alt="GraphQLCop EX Logo" width="220" />
